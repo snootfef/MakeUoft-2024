@@ -2,9 +2,8 @@ import pyfirmata
 import time
 from recog import HandDetector as hd
 
-ARDUINO_PORT = "/dev/somewhere"
 
-board = pyfirmata.Arduino(ARDUINO_PORT)
+board = pyfirmata.Arduino("COM3", baudrate=57600)
 
 while True:
     board.digital[13].write(1)
