@@ -1,6 +1,7 @@
 import cv2
 import mediapipe as mp
 import time
+import math
 
 class HandRecog:
     def __init__(self):
@@ -51,21 +52,23 @@ class HandRecog:
     def handMovingDirection(self, history):
         direction = history[1][9].x - history[0][9].x
         direction /= abs(direction) # -1 = left, 1 = right
+        #if abs(history[0][9].x - history[len(history)-1][9].x) > 10:
+        significant = (abs((history[0][9].x - history[len(history)-1][9].x)) * 1.5**(-math.log(abs(history[0][9].z), 2))) > 1.2
         for i in range(2, len(history)):
             if direction * (history[i][9].x - history[i-1][9].x) < 0:
-                return ""
-        return "left" if direction == -1 else "right"
+                return ["", False]
+        return ["left", significant] if direction == -1 else ["right", significant]
         
     def isWaving(self, directionHistory):
         direction = 0
         count = 0
         for d in directionHistory:
-            if d == "":
+            if d[0] == "":
                 continue
-            if d == "left" and direction != -1:
+            if d[0] == "left" and d[1] and direction != -1:
                 direction = -1
                 count += 1
-            elif d == "right" and direction != 1:
+            elif d[0] == "right" and d[1] and direction != 1:
                 direction = 1
                 count += 1
         return count >= 4
