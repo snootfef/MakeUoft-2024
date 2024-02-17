@@ -9,6 +9,12 @@ class HandRecog:
         self.mpHands = mp.solutions.hands
         self.hands = self.mpHands.Hands()
         self.mpDraw = mp.solutions.drawing_utils
+        self.history = []
+        self.directionHistory = [["", False]] * 20
+        self.count = 0
+        self.buffer = time.time()
+        self.waving = False
+        self.onWave = lambda: print("Hi!")
         
     def getHand(self):
         success, img = self.cap.read()
@@ -50,12 +56,12 @@ class HandRecog:
         return hand[0].y > hand[12].y
     
     def handMovingDirection(self, history):
-        direction = history[1][9].x - history[0][9].x
+        direction = self.history[1][9].x - self.history[0][9].x
         direction /= abs(direction) # -1 = left, 1 = right
-        #if abs(history[0][9].x - history[len(history)-1][9].x) > 10:
-        significant = (abs((history[0][9].x - history[len(history)-1][9].x)) * 1.5**(-math.log(abs(history[0][9].z), 2))) > 1.2
-        for i in range(2, len(history)):
-            if direction * (history[i][9].x - history[i-1][9].x) < 0:
+        #if abs(self.history[0][9].x - self.history[len(self.history)-1][9].x) > 10:
+        significant = (abs((self.history[0][9].x - self.history[len(self.history)-1][9].x)) * 1.5**(-math.log(abs(self.history[0][9].z), 2))) > 1
+        for i in range(2, len(self.history)):
+            if direction * (self.history[i][9].x - self.history[i-1][9].x) < 0:
                 return ["", False]
         return ["left", significant] if direction == -1 else ["right", significant]
         
@@ -71,4 +77,43 @@ class HandRecog:
             elif d[0] == "right" and d[1] and direction != 1:
                 direction = 1
                 count += 1
-        return count >= 4
+        return count >= 3
+    
+    def stopWaving(self):
+        self.waving = False
+        self.buffer = time.time()
+        #print("Stopped self.Waving")
+
+    def checkHand(self):
+        hand = self.getHand()
+        if hand == []:
+            if self.waving and time.time() - self.buffer > 3:
+                self.stopWaving()
+        else:
+            if len(self.history) == 4:
+                self.history.pop(0)
+            self.history.append(hand)
+            if len(self.directionHistory) == 20:
+                self.directionHistory.pop(0)
+            if self.handIsOpen(hand) and self.handUp(hand):
+                if len(self.history) == 4:
+                    handDirection = self.handMovingDirection(self.history)
+                    self.directionHistory.append(handDirection)
+                    waved = self.isWaving(self.directionHistory)
+                    bufferTime = time.time() - self.buffer
+                    if waved and not self.waving and bufferTime > 1:
+                        self.count += 1
+                        self.buffer = time.time()
+                        self.waving = True
+                        self.onWave()
+                    elif not waved and self.waving and bufferTime > 1:
+                        self.stopWaving()
+            else:
+                self.directionHistory.append(["", False])
+                if self.waving and time.time() - self.buffer > 1:
+                    self.stopWaving()
+    
+    def setOnWave(self, action):
+        self.onWave = action
+        
+    

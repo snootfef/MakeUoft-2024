@@ -12,7 +12,6 @@ leftShoulder = board.get_pin('d:9:s')
 
 def moveServo(servo, degrees):
     servo.write(degrees)  # Move servo to specified position
-    time.sleep(0.03)
 
 def runArduino():
     angle=0
@@ -30,4 +29,5 @@ def runArduino():
         if angle >= 180:
             angle = 0
             
+        time.sleep(0.05)
 runArduino()
