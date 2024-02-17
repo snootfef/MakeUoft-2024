@@ -1,5 +1,6 @@
 import pyfirmata
 import time
+from recog import HandDetector as hd
 
 ARDUINO_PORT = "/dev/somewhere"
 
