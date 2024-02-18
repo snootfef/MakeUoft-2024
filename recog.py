@@ -15,6 +15,8 @@ class HandRecog:
         self.buffer = time.time()
         self.waving = False
         self.onWave = lambda: print("Hi!")
+        self.points = [[]]
+        self.pinching = False
         
     def getHand(self):
         success, img = self.cap.read()
@@ -24,21 +26,20 @@ class HandRecog:
         if results.multi_hand_landmarks:
             handlms = results.multi_hand_landmarks[0]
             hand = list(handlms.landmark)
-            self.displayHand(handlms, img)
-            self.mpDraw.draw_landmarks(img, handlms, self.mpHands.HAND_CONNECTIONS)
-
+            #self.mpDraw.draw_landmarks(img, handlms, self.mpHands.HAND_CONNECTIONS)
+        self.displayPoints(img)
+        
+        img = cv2.flip(img, 1)
         cv2.imshow("Image", img)
         cv2.waitKey(1)
         return hand
         
-    def displayHand(self, handlms, img):
-        for id, lm in enumerate(handlms.landmark):
-            #print(id, lm)
-            h, w, c = img.shape
-            cx, cy = int(lm.x*w), int(lm.y*h)
-            #if id == 5:
-            cv2.circle(img, (cx, cy), 15, (139, 0, 0), cv2.FILLED)
+    def displayPoints(self, img):
+        for line in self.points:
+            for i in range(1, len(line)):
+                cv2.line(img, (int(line[i-1].x*img.shape[1]), int(line[i-1].y*img.shape[0])), (int(line[i].x*img.shape[1]), int(line[i].y*img.shape[0])), (0, 0, 255), 2)
         
+    
     def dist(self, p1, p2):
         return ((p2.x - p1.x)**2 + (p2.y - p1.y)**2)**0.5
     
@@ -86,34 +87,34 @@ class HandRecog:
 
     def checkHand(self):
         hand = self.getHand()
-        if hand == []:
-            if self.waving and time.time() - self.buffer > 3:
-                self.stopWaving()
+        pinched = self.isPinch(hand)
+ 
+        if pinched:
+            last = len(self.points)-1
+            if not self.pinching:
+                self.points[last] = [hand[4]]
+                self.pinching = True
+            elif len(self.points[last]) > 0 and self.dist(hand[4], self.points[last][len(self.points[last])-1]) > 0.005 or len(self.points[last]) == 0:
+                self.points[last].append(hand[4])
         else:
-            if len(self.history) == 4:
-                self.history.pop(0)
-            self.history.append(hand)
-            if len(self.directionHistory) == 20:
-                self.directionHistory.pop(0)
-            if self.handIsOpen(hand) and self.handUp(hand):
-                if len(self.history) == 4:
-                    handDirection = self.handMovingDirection(self.history)
-                    self.directionHistory.append(handDirection)
-                    waved = self.isWaving(self.directionHistory)
-                    bufferTime = time.time() - self.buffer
-                    if waved and not self.waving and bufferTime > 1:
-                        self.count += 1
-                        self.buffer = time.time()
-                        self.waving = True
-                        self.onWave()
-                    elif not waved and self.waving and bufferTime > 1:
-                        self.stopWaving()
-            else:
-                self.directionHistory.append(["", False])
-                if self.waving and time.time() - self.buffer > 1:
-                    self.stopWaving()
+            if self.pinching:
+                self.points.append([])
+                self.pinching = False
+            elif self.handDown(hand) and len(self.points) > 0 and len(self.points[0]) > 0:
+                self.points = [[]]
+                
     
     def setOnWave(self, action):
         self.onWave = action
+        
+    def isPinch(self, hand):
+        if len(hand) < 21:
+            return False
+        return self.dist(hand[4], hand[8]) < 0.03
+    
+    def handDown(self, hand):
+        if len(hand) < 21:
+            return False
+        return hand[0].y < hand[12].y + 0.1
         
     

@@ -9,6 +9,6 @@ HD.setOnWave(onWave)
 
 while True:
     HD.checkHand()
-    time.sleep(0.05)
+    time.sleep(0.01)
     
     
