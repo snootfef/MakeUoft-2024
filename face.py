@@ -1,42 +1,53 @@
 import cv2
 from deepface import DeepFace
 
-# Load the pre-trained emotion detection model
-model = DeepFace.build_model("Emotion")
 
-# Define emotion labels
-emotion_labels = ['angry', 'disgust', 'fear',
-                  'happy', 'sad', 'surprise', 'neutral']
-
-# Load face cascade classifier
-face_cascade = cv2.CascadeClassifier(
-    cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+class FaceTracker:
+    def __init__(self):
+        self.face_cascade = cv2.CascadeClassifier(
+            cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+        self.cap = cv2.VideoCapture(0)
 
 # Start capturing video
-cap = cv2.VideoCapture(0)
 
-while True:
-    # Capture frame-by-frame
-    ret, frame = cap.read()
+    def toBinaryArray(self, image):
+        res = []
+        for i in range(len(image)):
+            for j in range(len(image[i])):
+                if image[i][j] // 3 > 140:
+                    res.append(1)
+                else:
+                    res.append(0)
+        return res
 
-    # Convert frame to grayscale
-    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    def getFace(self):
+        ret, frame = self.cap.read()
 
-    # Detect faces in the frame
-    face = face_cascade.detectMultiScale(
-        gray_frame, scaleFactor=1.4, minNeighbors=5, minSize=(128, 64)
-    )
+        # Convert frame to grayscale
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-    for (x, y, w, h) in face:
-        cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 4)
+        # Detect faces in the frame
+        face = self.face_cascade.detectMultiScale(
+            gray_frame, scaleFactor=1.1, minNeighbors=5, minSize=(40, 40)
+        )
+        if len(face) == 0:
+            return None
 
-    cv2.imshow(
-        "My Face Detection Project", frame
-    )  # display the processed frame in a window named "My Face Detection Project"
+        extra_x = 150
+        for (x, y, w, h) in face:
+            img_width = w + 2 * extra_x
+            img_height = 0.5 * img_width
+            extra_y = int((img_height - h) / 2)
+            crop_img = gray_frame[max(0, y-extra_y):y+h+extra_y,
+                                  max(0, x-extra_x):x+w+extra_x]
 
-    if cv2.waitKey(1) & 0xFF == ord("q"):
-        break
+        # resize to 128x64
+        crop_img = cv2.resize(crop_img, (128, 64))
+        # increase contrast
+        crop_img = cv2.addWeighted(crop_img, 1.7, crop_img, 0, 0)
+        ret, thresh = cv2.threshold(crop_img, 140, 255, 0)
+        cv2.imshow("Image", thresh)
+        cv2.waitKey(1)
+        crop_img = self.toBinaryArray(crop_img)
 
-# Release the capture and close all windows
-cap.release()
-cv2.destroyAllWindows()
+        return crop_img

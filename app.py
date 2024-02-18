@@ -1,14 +1,20 @@
 import time
-import serial #The PySerial module
+import serial  # The PySerial module
+from face import FaceTracker
 
 
-ser = serial.Serial("COM5", 9600) #Change COM3 to whichever COM port your arduino is in
+# Change COM3 to whichever COM port your arduino is in
+ser = serial.Serial("COM5", 9600)
 
-for i in range(0,10):
-    n = input()
+FT = FaceTracker()
 
-    #Sending the file via serial to arduino
-    byte_signal = bytes([int(n)])
-    ser.write(byte_signal)
-
-    time.sleep(5)
+while True:
+    f = FT.getFace()
+    if f is None:
+        continue
+    ser.write(bytes([1]))
+    for i in range(len(f)):
+        ser.write(bytes(f[i]))
+    # byte_signal = bytes(f[i*1024:(i+1)*1024])
+    # ser.write(byte_signal)
+    time.sleep(1)
