@@ -12,22 +12,19 @@ leftShoulder = board.get_pin('d:9:s')
 
 def moveServo(servo, degrees):
     servo.write(degrees)  # Move servo to specified position
+    
+def onWave():
+    moveServo(leftShoulder, 150)
+    time.sleep(1)
+    moveServo(leftShoulder, 0)
 
 def runArduino():
-    angle=0
-    HandDetector = hd()
+    HD = hd()
+    HD.setOnWave(onWave)
+    moveServo(leftShoulder, 0)
     while True:
-        HandDetector.getHand()
-        
-        print("Angle: ", leftShoulder.read())
-        moveServo(leftShoulder, angle)
-        board.digital[13].write(1)
-        time.sleep(1)
-        board.digital[13].write(0)
-        time.sleep(1)
-        angle += 10
-        if angle >= 180:
-            angle = 0
-            
+        HD.checkHand()
         time.sleep(0.05)
+        
+        
 runArduino()
