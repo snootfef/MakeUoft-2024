@@ -24,8 +24,8 @@ class HandRecog:
         if results.multi_hand_landmarks:
             handlms = results.multi_hand_landmarks[0]
             hand = list(handlms.landmark)
-            self.displayHand(handlms, img)
-            self.mpDraw.draw_landmarks(img, handlms, self.mpHands.HAND_CONNECTIONS)
+            #self.displayHand(handlms, img)
+            #self.mpDraw.draw_landmarks(img, handlms, self.mpHands.HAND_CONNECTIONS)
 
         cv2.imshow("Image", img)
         cv2.waitKey(1)
@@ -87,7 +87,8 @@ class HandRecog:
     def checkHand(self):
         hand = self.getHand()
         if hand == []:
-            if self.waving and time.time() - self.buffer > 3:
+            self.directionHistory = [["", False]] * 20
+            if self.waving:
                 self.stopWaving()
         else:
             if len(self.history) == 4:
