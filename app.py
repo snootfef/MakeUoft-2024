@@ -1,33 +1,14 @@
-from pyfirmata import Arduino, util, SERVO
 import time
-from recog import HandRecog as hd
-import threading as th
+import serial #The PySerial module
 
 
-board = Arduino("COM5")
-it = util.Iterator(board)
-it.start()
+ser = serial.Serial("COM5", 9600) #Change COM3 to whichever COM port your arduino is in
 
-leftShoulder = board.get_pin('d:9:s')
-pin13 = board.get_pin('d:13:o')
+for i in range(0,10):
+    n = input()
 
-def moveServo(servo, degrees):
-    servo.write(degrees)  # Move servo to specified position
-    
-def onWave():
-    print("Waving")
-    pin13.write(1)
-    time.sleep(2)
-    pin13.write(0)
+    #Sending the file via serial to arduino
+    byte_signal = bytes([int(n)])
+    ser.write(byte_signal)
 
-def runArduino():
-    HD = hd()
-    HD.setOnWave(onWave)
-    #moveServo(leftShoulder, 0)
-    pin13.write(0)
-    while True:
-        HD.checkHand()
-        time.sleep(0.05)
-        
-        
-runArduino()
+    time.sleep(5)
